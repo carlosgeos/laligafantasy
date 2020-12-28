@@ -9,24 +9,6 @@ market = requests.get(market_url, headers=headers).json()
 
 clean_market = sorted([clean(player) for player in market], key=lambda x: x["m_per_point"])
 
-df = pd.DataFrame(clean_market)
-df = df[[
-    'id',
-    'name',
-    'status',
-    'market_value',
-    'sale_price',
-    'price',
-    'avg_points',
-    'm_per_point',
-    'points',
-    'potential',
-    'last_season_points',
-    'change'
-]]
-print(df)
-#write_db(df, "market")
-
 
 def get_status(player):
     return "❌" if player["status"] == "injured" else "✅"
@@ -47,3 +29,26 @@ def report():
     print("{:<6}{:<20}{:>12}{:>12}{:>12}{:>12}".format("-----", "-------", "------", "---------", "-------", "-"))
     for p in clean_market:
         print("{:<6}{:<20}{:>12.3f}{:>12.2f}{:>12.2f}{:>12}".format(get_status(p), p["name"], p["m_per_point"], p["potential"], p["last_season_points"] if p["last_season_points"] else 0, get_change_percent(p) if p["last_season_points"] else ""))
+
+
+def run():
+    df = pd.DataFrame(clean_market)
+    df = df[[
+        'id',
+        'name',
+        'status',
+        'market_value',
+        'sale_price',
+        'price',
+        'avg_points',
+        'm_per_point',
+        'points',
+        'potential',
+        'last_season_points',
+        'change'
+    ]]
+    print(df)
+    write_db(df, "market")
+
+
+report()
