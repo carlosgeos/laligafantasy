@@ -12,13 +12,10 @@ all_players = [clean_2(player) for player in all_players]
 
 def main():
     df = pd.DataFrame(all_players)
-    df = df.astype({
-        "id": "int64",
-        "market_value": "int64"
-    })
     df = df.set_index("id")
     df = df[[
         'name',
+        'position'
         'status',
         'team',
         'market_value',

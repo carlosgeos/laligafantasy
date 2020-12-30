@@ -1,3 +1,1 @@
-from market import report
-
-report()
+# Main entrypoint

@@ -1,40 +1,26 @@
-import requests
 import pandas as pd
-import auth
+from api import session as s
 from core import clean, write_db
 
 market_url = "https://api.laligafantasymarca.com/api/v3/league/011300439/market"
-headers = {"Authorization": "Bearer {}".format(auth.token)}
-market = requests.get(market_url, headers=headers).json()
-
-clean_market = sorted([clean(player) for player in market], key=lambda x: x["m_per_point"])
+market = s.get(market_url).json()
 
 
-def get_status(player):
-    return "❌" if player["status"] == "injured" else "✅"
+def not_my_sale(player):
+    """Returns true if the player listed in the market does not come from
+    my squad
+
+    """
+    return "salePrice" in player
 
 
-def get_change_percent(player):
-    percent = player["change"]
-    if percent > 0:
-        return "{:.2f}%".format(percent)
-    elif percent < 0:
-        return "{:.2f}%".format(percent)
-    else:
-        return str(percent)
+clean_market = sorted([clean(player) for player in market if not_my_sale(player)], key=lambda x: x["m_per_point"])
 
 
-def report():
-    print("{:<6}{:<20}{:>12}{:>12}{:>12}{:>12}".format("Forma", "Jugador", "€M/Pts", "Potencial", "LL19/20", "%"))
-    print("{:<6}{:<20}{:>12}{:>12}{:>12}{:>12}".format("-----", "-------", "------", "---------", "-------", "-"))
-    for p in clean_market:
-        print("{:<6}{:<20}{:>12.3f}{:>12.2f}{:>12.2f}{:>12}".format(get_status(p), p["name"], p["m_per_point"], p["potential"], p["last_season_points"] if p["last_season_points"] else 0, get_change_percent(p) if p["last_season_points"] else ""))
-
-
-def run():
+def main():
     df = pd.DataFrame(clean_market)
+    df = df.set_index("id")
     df = df[[
-        'id',
         'name',
         'status',
         'market_value',
@@ -47,8 +33,8 @@ def run():
         'last_season_points',
         'change'
     ]]
-    print(df)
     write_db(df, "market")
 
 
-report()
+if __name__ == '__main__':
+    main()

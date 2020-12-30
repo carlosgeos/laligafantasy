@@ -6,20 +6,21 @@ from logs import logger
 from json.decoder import JSONDecodeError
 
 player_prices_url = lambda p: f"https://api.laligafantasymarca.com/api/v3/player/{p['id']}/market-value"
+num_players = len(players.all_players)
 
 
-def price_history(player):
+def price_history(i, player):
     """Fetches and parses the price history for player id 'player'
 
     """
-    logger.info(f"Processing {player['name']}")
+    logger.info(f"Processing {player['name']}. {i + 1} out of {num_players}")
     url = player_prices_url(player)
     try:
         player_prices = s.get(url, timeout=4).json()
         player_prices = [{
             "id": player["id"],
             "price": p["marketValue"],
-            "date": p["date"]
+            "date": pd.to_datetime(p["date"], utc=True)
         } for p in player_prices]
 
         return player_prices
@@ -28,26 +29,14 @@ def price_history(player):
         return []
 
 
-all_prices = [price_history(player) for player in players.all_players]
-all_prices = [price for prices in all_prices for price in prices]
+def main():
+    all_prices = [price_history(i, player) for (i, player) in enumerate(players.all_players)]
+    all_prices = [price for prices in all_prices for price in prices]  # Flatten
 
-df = pd.DataFrame(all_prices)
-df["date"] = pd.to_datetime(df["date"], utc=True)
-df["id"] = df["id"].astype("int64")
-df = df.set_index("id")
-
-players_df = pd.DataFrame(players.all_players)
-players_df = players_df.astype({
-    "id": "int64",
-    "market_value": "int64"
-})
-players_df = players_df.set_index("id")
+    df = pd.DataFrame(all_prices)
+    df = df.set_index("id")
+    write_db(df, "price_history")
 
 
-df = df.join(players_df)
-df = df[[
-    'name',
-    'price',
-    'date'
-]]
-write_db(df, "price_history")
+if __name__ == '__main__':
+    main()

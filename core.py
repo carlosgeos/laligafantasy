@@ -1,3 +1,4 @@
+import pandas as pd
 from logs import logger
 from db import engine
 
@@ -47,7 +48,7 @@ def clean(player):
 
     """
     new_player = {
-        "id": player["playerMaster"]["id"],
+        "id": int(player["playerMaster"]["id"]),
         "name": player["playerMaster"]["nickname"],
         "status": player["playerMaster"]["playerStatus"],
         "team": player["playerMaster"]["team"]["name"],
@@ -70,11 +71,12 @@ def clean_2(player):
 
     """
     new_player = {
-        "id": player["id"],
+        "id": int(player["id"]),
         "name": player["nickname"],
+        "position": int(player["positionId"]),
         "status": player["playerStatus"],
         "team": player["team"]["name"],
-        "market_value": player["marketValue"],
+        "market_value": int(player["marketValue"]),
         "points": player["points"],
         "last_season_points": int(player["lastSeasonPoints"]) if "lastSeasonPoints" in player else None,
         "avg_points": player["averagePoints"],
@@ -85,6 +87,35 @@ def clean_2(player):
     return new_player
 
 
+def clean_3(manager_id, player):
+    """Same kind of transform, for the 'team' (manager) endpoint
+
+    """
+    new_player = {
+        "id": int(player["playerMaster"]["id"]),
+        "manager_id": int(manager_id),
+        "clause": int(player["buyoutClause"]),
+        "clause_lock_end": pd.to_datetime(player["buyoutClauseLockedEndTime"], utc=True)
+    }
+    return new_player
+
+
+def clean_4(team):
+    """Same kind of transform, for the 'ranking' endpoint
+
+    """
+    new_team = {
+        "id": int(team["team"]["id"]),
+        "position": int(team["position"]),
+        "points": int(team["points"]),
+        "name": team["team"]["manager"]["managerName"],
+        "value": int(team["team"]["teamValue"]),
+        "team_points": int(team["team"]["teamPoints"]),
+        "ts": pd.to_datetime("today")
+    }
+    return new_team
+
+
 def write_db(df, table_name):
     """Writes dataframe df to table table_name using the imported
     SQLAlchemy engine.
@@ -92,4 +123,14 @@ def write_db(df, table_name):
     """
     logger.info(f"Rebuilding and loading {table_name}...")
     df.to_sql(table_name, con=engine, if_exists='replace', method='multi')
+    logger.info("done")
+
+
+def insert_db(df, table_name):
+    """Same as write_db, only inserting instead of truncating and
+    reloading.
+
+    """
+    logger.info(f"Appending to {table_name}...")
+    df.to_sql(table_name, con=engine, if_exists='append', method='multi')
     logger.info("done")
