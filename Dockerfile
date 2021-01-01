@@ -11,5 +11,6 @@ RUN pip install -r /tmp/requirements.txt
 
 COPY . /src/laliga
 
-#RUN pip install /tmp/laliga
-CMD ["python", "market.py"]
+# Specific to AWS Lambda
+ENTRYPOINT [ "/usr/local/bin/python", "-m", "awslambdaric" ]
+CMD [ "main.handler" ]
