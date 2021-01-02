@@ -15,7 +15,7 @@ def main():
     df = df.set_index("id")
     df = df[[
         'name',
-        'position'
+        'position',
         'status',
         'team',
         'market_value',
