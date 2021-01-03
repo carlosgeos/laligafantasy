@@ -2,7 +2,7 @@
 
 ## Config
 
-Required ENV vars are: `DATABASE_URL` and `OAUTH_TOKEN`.
+Required ENV vars are: `DATABASE_URL`, `USERNAME`, `PASSWORD` and `LEAGUE_ID`
 
 ## Usage
 

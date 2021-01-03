@@ -1,9 +1,9 @@
 import pandas as pd
+from functools import cache
 from api import session as s
 from core import clean, write_db
 
 market_url = "https://api.laligafantasymarca.com/api/v3/league/011300439/market"
-market = s.get(market_url).json()
 
 
 def not_my_sale(player):
@@ -14,11 +14,14 @@ def not_my_sale(player):
     return "salePrice" in player
 
 
-clean_market = sorted([clean(player) for player in market if not_my_sale(player)], key=lambda x: x["m_per_point"])
+@cache
+def market():
+    market = s().get(market_url).json()
+    return sorted([clean(player) for player in market if not_my_sale(player)], key=lambda x: x["m_per_point"])
 
 
-def main():
-    df = pd.DataFrame(clean_market)
+def main(event, context):
+    df = pd.DataFrame(market())
     df = df.set_index("id")
     df = df[[
         'name',
@@ -37,4 +40,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # AWS Lambda mock
+    handler("some_event", "some_context")

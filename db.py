@@ -1,19 +1,11 @@
 import os
-from sqlalchemy import create_engine
+import sqlalchemy
+from logs import logger
 
-engine = create_engine(os.environ["DATABASE_URL"])
+engine = sqlalchemy.create_engine(os.environ["DATABASE_URL"])
 
-# Create
-# db.execute("CREATE TABLE IF NOT EXISTS films (title text, director text, year text)")
-# db.execute("INSERT INTO films (title, director, year) VALUES ('Doctor Strange', 'Scott Derrickson', '2016')")
 
-# Read
-# result_set = db.execute("SELECT * FROM films")
-# for r in result_set:
-#     print(r)
-
-# Update
-#db.execute("UPDATE films SET title='Some2016Film' WHERE year='2016'")
-
-# Delete
-#db.execute("DELETE FROM films WHERE year='2016'")
+with open("sql/player_trends.sql", "r") as sql_file:
+    query = sqlalchemy.text(sql_file.read())
+    logger.info("Writing player_trends to db...")
+    response = engine.execute(query)
