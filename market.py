@@ -20,7 +20,7 @@ def market():
     return sorted([clean(player) for player in market if not_my_sale(player)], key=lambda x: x["m_per_point"])
 
 
-def main(event, context):
+def handler(event, context):
     df = pd.DataFrame(market())
     df = df.set_index("id")
     df = df[[

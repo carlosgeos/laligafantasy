@@ -23,7 +23,7 @@ def league_players():
         team = s().get(managers_url(manager_id)).json()["players"]
         league_players.append([clean_3(manager_id, player) for player in team])
 
-        return [player for team in league_players for player in team]  # Flatten
+    return [player for team in league_players for player in team]  # Flatten
 
 
 def handler(event, context):

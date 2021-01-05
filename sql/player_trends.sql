@@ -1,5 +1,5 @@
-drop table if exists player_trends;
-create table player_trends as
+drop table if exists public.player_trends;
+create table public.player_trends as
 with last_dates as (
     select id,
            date,

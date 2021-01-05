@@ -10,7 +10,7 @@ ranking_url = f"https://api.laligafantasymarca.com/api/v4/leagues/{league_id}/ra
 
 @cache
 def ranking():
-    ranking = s.get(ranking_url).json()
+    ranking = s().get(ranking_url).json()
     return [clean_4(team) for team in ranking]
 
 

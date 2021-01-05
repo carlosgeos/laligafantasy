@@ -14,7 +14,7 @@ def all_players():
 
 
 def handler(event, context):
-    df = pd.DataFrame(all_players)
+    df = pd.DataFrame(all_players())
     df = df.set_index("id")
     df = df[[
         'name',
