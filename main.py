@@ -8,7 +8,7 @@ import db
 from logs import logger
 
 
-def handler(event, context):
+def hourly_handler(event, context):
     """App entrypoint. Executed hourly
 
     """
@@ -16,13 +16,14 @@ def handler(event, context):
     market.handler(event, context)
     league_players.handler(event, context)
     ranking.handler(event, context)
-    players.handler(event, context)
 
 
 def daily_handler(event, context):
     """App entrypoint. Executed daily
 
     """
+    logger.info(f"Using Python version {sys.version}")
+    players.handler(event, context)
     price_history.handler(event, context)
     db.build_tables()
 
