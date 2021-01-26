@@ -10,3 +10,8 @@ def build_tables():
         query = sqlalchemy.text(sql_file.read())
         logger.info("Writing player_trends to db...")
         engine.execute(query)
+
+    with open("sql/my_team.sql", "r") as sql_file:
+        query = sqlalchemy.text(sql_file.read().replace("<<MANAGER_ID>>", os.environ["MANAGER_ID"]))
+        logger.info("Cleaning myteam table...")
+        engine.execute(query)
