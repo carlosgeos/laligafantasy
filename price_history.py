@@ -32,7 +32,8 @@ def price_history(i, player, total):
 @cache
 def all_prices():
     """Returns a list of dicts containing historical prices for all
-    players in LaLiga (501 before winter market 20/21)
+    players in LaLiga (a total of 501 before winter market 20/21 for
+    instance)
 
     """
     all_players = players.all_players()

@@ -9,9 +9,9 @@ sqlalchemy = "*"
 psycopg2 = "*"
 pandas = "*"
 awslambdaric = "*"
+pyomo = "*"
 
 [dev-packages]
-
 
 [requires]
 python_version = "3.9"

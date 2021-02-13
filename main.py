@@ -29,4 +29,4 @@ def daily_handler(event, context):
 
 
 if __name__ == '__main__':
-    hourly_handler("some_event", "some_context")
+    daily_handler("some_event", "some_context")
