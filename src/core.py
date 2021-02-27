@@ -1,6 +1,6 @@
 import pandas as pd
-from logs import logger
-from db import engine
+from .log.core import logger
+from .db import engine
 
 
 def m_per_point(player):

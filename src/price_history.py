@@ -1,10 +1,11 @@
 import pandas as pd
-import players
 from functools import cache
-from core import write_db
-from api import session as s
-from logs import logger
 from json.decoder import JSONDecodeError
+
+from .core import write_db
+from .api import session as s
+from .log.core import logger
+from . import players
 
 player_prices_url = lambda p: f"https://api.laligafantasymarca.com/api/v3/player/{p['id']}/market-value"
 

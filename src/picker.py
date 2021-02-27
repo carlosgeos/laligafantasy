@@ -1,8 +1,8 @@
 import os
 import pyomo.environ as pyo
 import pandas as pd
-from players import all_players
-from league_players import players_managed_by
+from .players import all_players
+from .league_players import players_managed_by
 
 
 

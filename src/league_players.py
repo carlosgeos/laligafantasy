@@ -1,8 +1,8 @@
 import os
 import pandas as pd
 from functools import cache
-from api import session as s
-from core import clean_3, write_db
+from .api import session as s
+from .core import clean_3, write_db
 
 league_id = os.environ["LEAGUE_ID"]
 

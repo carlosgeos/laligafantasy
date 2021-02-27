@@ -1,5 +1,5 @@
 import os
-import api
+from . import auth
 
 username = os.environ["USERNAME"]
 password = os.environ["PASSWORD"]
@@ -11,7 +11,7 @@ def handler(event, context):
     $ python print_token.py
 
     """
-    print(api.token(username, password))
+    print(auth.token(username, password))
 
 
 if __name__ == '__main__':

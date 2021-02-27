@@ -1,6 +1,6 @@
 import os
 import sqlalchemy
-from logs import logger
+from .log.core import logger
 
 engine = sqlalchemy.create_engine(os.environ["DATABASE_URL"])
 

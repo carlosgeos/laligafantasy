@@ -1,7 +1,7 @@
 import pandas as pd
 from functools import cache
-from api import session as s
-from core import clean_2, write_db
+from .api import session as s
+from .core import clean_2, write_db
 
 
 all_players_url = "https://api.laligafantasymarca.com/api/v3/players"

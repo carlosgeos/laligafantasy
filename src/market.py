@@ -1,7 +1,7 @@
 import pandas as pd
 from functools import cache
-from api import session as s
-from core import clean, write_db
+from .api import session as s
+from .core import clean, write_db
 
 market_url = "https://api.laligafantasymarca.com/api/v3/league/011300439/market"
 

@@ -1,8 +1,9 @@
 import os
 import pandas as pd
 from functools import cache
-from api import session as s
-from core import clean_4, write_db, insert_db
+
+from .api import session as s
+from .core import clean_4, write_db, insert_db
 
 league_id = os.environ["LEAGUE_ID"]
 ranking_url = f"https://api.laligafantasymarca.com/api/v4/leagues/{league_id}/ranking"
