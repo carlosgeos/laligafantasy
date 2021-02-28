@@ -1,5 +1,5 @@
 import os
-from . import auth
+from . import core as auth
 
 username = os.environ["USERNAME"]
 password = os.environ["PASSWORD"]
