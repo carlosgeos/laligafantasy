@@ -28,82 +28,65 @@ model.status = pyo.Param(model.players, domain=pyo.NonNegativeIntegers, initiali
 model.positions = pyo.Param(model.players, initialize=player_positions)
 model.picked = pyo.Var(model.players, domain=pyo.Boolean, initialize=0)
 
-#model.players[] = dataset["name"]
-
-# print(dataset)
-# print(model)
-# print(model.avg_points)
-
-
-def obj(model):
-    """Objective Function
-    """
-    return pyo.summation(model.avg_points, model.picked)
-
-
-def eleven(model):
-    """There should be 11 players in the line up
-
-    """
-    return pyo.summation(model.picked) == 11
-
-
-def all_ok(model):
-    """Players are not injured
-
-    """
-    return pyo.summation(model.status, model.picked) == 11
-
-
-def possible_lineups(model):
-    keepers = [p for p in model.players if model.positions[p] == 1]
-    defenders = [p for p in model.players if model.positions[p] == 2]
-    midfielders = [p for p in model.players if model.positions[p] == 3]
-    attackers = [p for p in model.players if model.positions[p] == 4]
-
-    one_goalkeeper = sum(model.picked[j] for j in keepers) == 1
-
-    three_five_two = (sum(model.picked[j] for j in defenders) == 3 and
-                      sum(model.picked[j] for j in midfielders) == 5 and
-                      sum(model.picker[j] for j in attackers == 2))
-
-    three_four_three = (sum(model.picked[j] for j in defenders) == 3 and
-                        sum(model.picked[j] for j in midfielders) == 4 and
-                        sum(model.picker[j] for j in attackers == 3))
-
-    four_five_one = (sum(model.picked[j] for j in defenders) == 4 and
-                     sum(model.picked[j] for j in midfielders) == 5 and
-                     sum(model.picker[j] for j in attackers == 1))
-
-    four_four_two = (sum(model.picked[j] for j in defenders) == 4 and
-                     sum(model.picked[j] for j in midfielders) == 4 and
-                     sum(model.picker[j] for j in attackers == 2))
-
-    five_four_one = (sum(model.picked[j] for j in defenders) == 5 and
-                     sum(model.picked[j] for j in midfielders) == 4 and
-                     sum(model.picker[j] for j in attackers == 1))
-
-    five_three_two = (sum(model.picked[j] for j in defenders) == 5 and
-                      sum(model.picked[j] for j in midfielders) == 3 and
-                      sum(model.picker[j] for j in attackers == 2))
-
-
-    return (one_goalkeeper and (three_five_two or
-                                three_four_three or
-                                four_five_one or
-                                four_four_two or
-                                five_four_one or
-                                five_three_two))
-
-
 model.performance = pyo.Objective(
-    rule=obj,
+    rule=lambda m: pyo.summation(m.avg_points, m.picked),
     sense=pyo.maximize
 )
-model.eleven = pyo.Constraint(rule=eleven)
-model.all_ok = pyo.Constraint(rule=all_ok)
-model.possible_lineups = pyo.Constraint(rule=possible_lineups)
+
+goalies     = [p for p in model.players if model.positions[p] == 1]
+defenders   = [p for p in model.players if model.positions[p] == 2]
+midfielders = [p for p in model.players if model.positions[p] == 3]
+attackers   = [p for p in model.players if model.positions[p] == 4]
+
+model.eleven = pyo.Constraint(rule=lambda m: pyo.summation(m.picked) == 11)
+model.all_ok = pyo.Constraint(rule=lambda m: pyo.summation(m.status, m.picked) == 11)
+model.one_goalkeeper = pyo.Constraint(rule=lambda m: sum(m.picked[j] for j in goalies) == 1)
+model.defenders_lb = pyo.Constraint(rule=lambda m: sum(m.picked[j] for j in defenders) >= 3)
+model.defenders_ub = pyo.Constraint(rule=lambda m: sum(m.picked[j] for j in defenders) <= 5)
+model.midfielders_lb = pyo.Constraint(rule=lambda m: sum(m.picked[j] for j in midfielders) >= 3)
+model.midfielders_ub = pyo.Constraint(rule=lambda m: sum(m.picked[j] for j in midfielders) <= 5)
+model.attackers_lb = pyo.Constraint(rule=lambda m: sum(m.picked[j] for j in attackers) >= 1)
+model.attackers_ub = pyo.Constraint(rule=lambda m: sum(m.picked[j] for j in attackers) <= 3)
 
 opt = pyo.SolverFactory('glpk')
-results = opt.solve(model)
-model.display()
+
+
+def print_lineup(model, results):
+    picked = [{"name": player, "pos": model.positions[player]} for player in model.players if pyo.value(model.picked[player]) == 1]
+
+    defenders = sum(1 if player["pos"] == 2 else 0 for player in picked)
+    midfielders = sum(1 if player["pos"] == 3 else 0 for player in picked)
+    attackers = sum(1 if player["pos"] == 4 else 0 for player in picked)
+
+    print("LINEUP")
+    print("------")
+    print(f"Formation: {defenders}-{midfielders}-{attackers}")
+
+    print("\nGoalkeeper:")
+    print("-----------")
+    print(" --- ".join([player["name"] for player in picked if player["pos"] == 1]))
+
+    print("\nDefenders:")
+    print("----------")
+    print(" --- ".join([player["name"] for player in picked if player["pos"] == 2]))
+
+    print("\nMidfielders:")
+    print("------------")
+    print(" --- ".join([player["name"] for player in picked if player["pos"] == 3]))
+
+    print("\nAttackers:")
+    print("---------")
+    print(" --- ".join([player["name"] for player in picked if player["pos"] == 4]))
+
+
+if __name__ == '__main__':
+    results = opt.solve(model)
+
+    if (results.solver.status == pyo.SolverStatus.ok) and (results.solver.termination_condition == pyo.TerminationCondition.optimal):
+        print("--SOLVER OK--")
+        print(f"MAX: {pyo.value(model.performance):.2f} average points\n")
+        print_lineup(model, results)
+    elif results.solver.termination_condition == pyo.TerminationCondition.infeasible:
+        print("infeasible")
+    else:
+        print(str(results.solver))

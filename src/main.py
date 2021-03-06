@@ -29,3 +29,4 @@ def daily_handler(event, context):
 if __name__ == '__main__':
     logger.info(f"Using Python version {sys.version}")
     hourly_handler("some_event", "some_context")
+    daily_handler("some_event", "some_context")
