@@ -12,12 +12,12 @@ Resources:
       FunctionName: LaLiga
       MemorySize: 512
       Timeout: 180
-      Runtime: java
+      Runtime: python3.8
       PackageType: Image
       ImageConfig:
         Command: ["main.hourly_handler"]
       Code:
-        ImageUri: 129276784352.dkr.ecr.eu-west-1.amazonaws.com/laliga:85a1ea6273c53d6e827c28611d8df085e08dc13d
+        ImageUri: 129276784352.dkr.ecr.eu-west-1.amazonaws.com/laliga:master-cb5103dad4caad4a117ff650a3854a10d762da03
       # Events:
       #   LaLiga:
       #     Type: Api

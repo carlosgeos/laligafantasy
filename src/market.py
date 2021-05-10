@@ -17,7 +17,7 @@ def not_my_sale(player):
 @cache
 def market():
     market = s().get(market_url).json()
-    return sorted([clean(player) for player in market if not_my_sale(player)], key=lambda x: x["m_per_point"])
+    return [clean(player) for player in market if not_my_sale(player)]
 
 
 def handler(event, context):

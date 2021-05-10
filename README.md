@@ -1,5 +1,18 @@
 # La Liga Fantasy Companion Tool
 
+![LaLiga](img/laliga.png)
+
+## About
+
+This tool queries LaLiga Fantasy API for historical data on players, prices, points and other metadata to build dashboards and insights around the game.
+
+The flow is:
+
+- Extract JSON data
+- Parse and insert to DB
+- Write transforms (SQL)
+- Build dashboards on Metabase OR run Pyomo
+
 ## Config
 
 Required ENV vars are: `DATABASE_URL`, `USERNAME`, `PASSWORD`,
@@ -14,6 +27,11 @@ $ python -m src.main
 ```
 
 ## Features
+
+### Overview
+
+The main idea is to fetch and analyse metrics on all of the league
+players to determine their value (price vs performance)
 
 ### Lineup picker (using [pyomo](https://github.com/Pyomo/pyomo))
 
@@ -41,11 +59,20 @@ choose the best players in the long run.
 
 ### Profits
 
+![Profits](img/profit.png)
 
 ### Buyouts
 
+![Buyouts](img/buyouts.png)
 
 ### Market
 
+![Market](img/market.png)
 
 ### Ranking
+
+Metabase
+
+### Sabotage
+
+Metabase
