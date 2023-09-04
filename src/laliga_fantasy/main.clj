@@ -1,0 +1,59 @@
+(ns laliga-fantasy.main
+  (:gen-class)
+  (:require
+   [hugsql.core :as hugsql]
+   [laliga-fantasy.activity :as activity]
+   [laliga-fantasy.daily-market :as daily-market]
+   [laliga-fantasy.db :as db]
+   [laliga-fantasy.env :as env]
+   [laliga-fantasy.owned-players :as o.players]
+   [laliga-fantasy.player :as player]
+   [laliga-fantasy.price-history :as price-history]
+   [laliga-fantasy.price-trend :as price-trend]
+   [taoensso.timbre :as log])
+  (:import
+   (java.lang.management ManagementFactory)))
+
+(hugsql/def-db-fns "laliga_fantasy/sql/main.sql")
+
+(defn healthcheck
+  "Another callable entry point to the application."
+  [& _args]
+  (println "Host arch:\t" (.getArch (ManagementFactory/getOperatingSystemMXBean)))
+  (println "Java version:\t" (System/getProperty "java.version"))
+  (println "JVM name:\t" (System/getProperty "java.vm.name"))
+  (println "JVM ver.:\t" (System/getProperty "java.vm.version"))
+  (println "JVM vendor.:\t" (System/getProperty "java.vm.vendor"))
+  (println "Clojure ver.:\t" (clojure-version)))
+
+(defn picker
+  [& _args]
+  (println "Lineup:")
+  (println "Not implemented"))
+
+(defn- create-views
+  []
+  (create-my-team-view db/ds {:manager-id (:manager-id env/config)}))
+
+(defn -main
+  "Main entrypoint to the application"
+  [& _args]
+  (healthcheck)
+  (log/info "START")
+  (player/load-players-to-db)
+  (daily-market/load-daily-market-to-db)
+  (o.players/load-owned-players-to-db)
+  (price-history/load-price-history-to-db)
+  (price-trend/load-price-trends-to-db)
+  (activity/load-activity-to-db)
+
+  (create-views)
+  ;; The following is important to avoid the 1 minute waiting time:
+  ;;
+  ;; https://groups.google.com/g/clojure/c/lCmpdwFp9FQ/m/zXEdJ_1NBgAJ
+  ;;
+  ;; This phenomenon is not well documented, but the best explanation
+  ;; can be found in:
+  ;;
+  ;; https://clojure.atlassian.net/jira/software/c/projects/CLJ/issues/CLJ-124
+  (shutdown-agents))

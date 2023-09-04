@@ -1,0 +1,1 @@
+(ns laliga-fantasy.core)

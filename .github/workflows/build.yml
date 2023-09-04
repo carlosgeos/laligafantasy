@@ -1,0 +1,47 @@
+name: 'Build'
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+  pull-requests: read
+
+# The `concurrency` key ensures that only a single workflow in the
+# same concurrency group will run at the same time.
+concurrency:
+  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
+  cancel-in-progress: true
+
+jobs:
+  build-uberjar:
+    strategy:
+      matrix:
+        java-version: ['11', '17']
+        java-distribution: ['temurin', 'zulu', 'corretto']
+        include:
+          - java-version: '17'
+            java-distribution: 'oracle'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Prepare java
+        uses: actions/setup-java@v3
+        with:
+          distribution: ${{matrix.java-distribution}}
+          java-version: ${{matrix.java-version}}
+
+      - name: Install Clojure tools
+        uses: DeLaGuardo/setup-clojure@11.0
+        with:
+          cli: 1.11.1.1413
+
+      - name: Run tests & build uberjar
+        run: clojure -T:build ci
+
+      - name: Check version
+        run: clojure -X:healthcheck

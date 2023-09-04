@@ -1,0 +1,5 @@
+{:database-url "changeme"
+ :username     "changeme"
+ :password     "changeme"
+ :league-id    "changeme"
+ :manager-id   "changeme"}
