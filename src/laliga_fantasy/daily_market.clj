@@ -17,6 +17,7 @@
   (let [url       (str "https://api-fantasy.llt-services.com/api/v3/league/"
                        (:league-id env/config)
                        "/market")
+        fmt       (jt/formatter :iso-offset-date-time)
         format-fn (fn [{:keys [playerMaster directOffer discr expirationDate
                                numberOfBids numberOfOffers salePrice sellerTeam]}]
                     {:player_id    (u/coerce-to-int (:id playerMaster))
@@ -29,7 +30,7 @@
                      :sale_price   (u/coerce-to-int salePrice)
                      :offers       (or (u/coerce-to-int numberOfOffers) 0)
                      :bids         (or (u/coerce-to-int numberOfBids) 0)
-                     :expiration   (->> (jt/instant expirationDate)
+                     :expiration   (->> (jt/instant fmt expirationDate)
                                         (jt/instant->sql-timestamp))
                      :created_at   (jt/sql-timestamp)})]
     (->> (client/get url {:as          :json

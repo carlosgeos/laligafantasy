@@ -42,10 +42,11 @@
   (let [url       (str "https://api-fantasy.llt-services.com/api/v3/leagues/"
                        (:league-id env/config)
                        "/news/1")
+        fmt       (jt/formatter :iso-offset-date-time)
         format-fn (fn [{:keys [msg _title id publicationDate]}]
                     (merge
                      {:transaction_id   (u/coerce-to-int id)
-                      :publication_date (->> (jt/instant publicationDate)
+                      :publication_date (->> (jt/instant fmt publicationDate)
                                              (jt/instant->sql-timestamp))
                       :created_at       (jt/sql-timestamp)}
                      (parse-activity msg)))]
@@ -56,9 +57,9 @@
          (pmap format-fn))))
 
 (defn load-activity-to-db
-    []
-    (log/info "Rebuilding activity table...")
-    (drop-activity-table db/ds)
-    (create-activity-table db/ds)
-    (sql/insert-multi! db/ds :activity (activity))
-    (log/info "Done."))
+  []
+  (log/info "Rebuilding activity table...")
+  (drop-activity-table db/ds)
+  (create-activity-table db/ds)
+  (sql/insert-multi! db/ds :activity (activity))
+  (log/info "Done."))

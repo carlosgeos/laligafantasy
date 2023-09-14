@@ -19,6 +19,7 @@
                     (str "https://api-fantasy.llt-services.com/api/v3/leagues/"
                          (:league-id env/config)
                          "/teams/" manager-id))
+        fmt       (jt/formatter :iso-offset-date-time)
         format-fn (fn [manager-id {:keys [buyoutClause manager
                                           buyoutClauseLockedEndTime playerMaster]}]
                     ;; Here we grab both the top level
@@ -29,7 +30,7 @@
                      :league_manager_id      (:id manager)
                      :manager_id             manager-id
                      :buyout                 (u/coerce-to-int buyoutClause)
-                     :buyout_lock_expiration (->> (jt/instant buyoutClauseLockedEndTime)
+                     :buyout_lock_expiration (->> (jt/instant fmt buyoutClauseLockedEndTime)
                                                   (jt/instant->sql-timestamp))
                      :created_at             (jt/sql-timestamp)})]
     (->> (-> (manager/manager-ids)

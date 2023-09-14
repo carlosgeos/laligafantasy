@@ -19,7 +19,7 @@
   [player-id {:keys [marketValue date]}]
   {:player_id    (u/coerce-to-int player-id)
    :market_value (u/coerce-to-int marketValue)
-   :ts           (-> (jt/instant date)
+   :ts           (-> (jt/instant (jt/formatter :iso-offset-date-time) date)
                      (jt/instant->sql-timestamp))
    :created_at   (jt/sql-timestamp)})
 
