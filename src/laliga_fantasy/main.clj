@@ -19,12 +19,18 @@
 (defn healthcheck
   "Another callable entry point to the application."
   [& _args]
-  (println "Host arch:\t" (.getArch (ManagementFactory/getOperatingSystemMXBean)))
-  (println "Java version:\t" (System/getProperty "java.version"))
-  (println "JVM name:\t" (System/getProperty "java.vm.name"))
-  (println "JVM ver.:\t" (System/getProperty "java.vm.version"))
-  (println "JVM vendor.:\t" (System/getProperty "java.vm.vendor"))
-  (println "Clojure ver.:\t" (clojure-version)))
+  (println (format "%20s" "Host arch:")
+           (.getArch (ManagementFactory/getOperatingSystemMXBean)))
+  (println (format "%20s" "Java version:")
+           (System/getProperty "java.version"))
+  (println (format "%20s" "JVM name:")
+           (System/getProperty "java.vm.name"))
+  (println (format "%20s" "JVM version:")
+           (System/getProperty "java.vm.version"))
+  (println (format "%20s" "JVM vendor:")
+           (System/getProperty "java.vm.vendor"))
+  (println (format "%20s" "Clojure version:")
+           (clojure-version)))
 
 (defn picker
   [& _args]
@@ -48,7 +54,8 @@
   (activity/load-activity-to-db)
 
   (create-views)
-  ;; The following is important to avoid the 1 minute waiting time:
+  ;; The following is important to avoid the 1 minute waiting time
+  ;; when the program execution is complete:
   ;;
   ;; https://groups.google.com/g/clojure/c/lCmpdwFp9FQ/m/zXEdJ_1NBgAJ
   ;;

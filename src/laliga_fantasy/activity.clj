@@ -68,35 +68,21 @@
       acc
       (recur (inc cnt) (activity-page (inc cnt)) (concat acc res)))))
 
-(defn- cash-balance
-  "Given an array of market transactions, return the current cash in
-  hand for the given player. The starting cash amount of every player
-  is 100M"
-  [txs]
-  (let [starting-amount 100000000
-        reduce-fn       (fn [acc {:keys [tx_type amount]}]
-                          (cond
-                            (= "sell" tx_type)
-                            (+ acc amount)
-
-                            (= "buy" tx_type)
-                            (+ acc (- amount))))]
-    (reduce reduce-fn starting-amount txs)))
-
-(defn get-players-cash-amounts
-  []
-  (let [activities (->> (sql/query
-                         db/ds
-                         ["select * from activity"]
-                         {:builder-fn rs/as-unqualified-maps}))
-        txs-per-player (group-by :origin activities)]
-    (->> (map (fn [[player txs]] [player (cash-balance txs)]) txs-per-player)
-         (into {}))))
-
 (defn load-activity-to-db
   []
-  (log/info "Rebuilding activity table...")
-  (drop-activity-table db/ds)
+  (log/info "Incrementally updating activity table...")
   (create-activity-table db/ds)
-  (sql/insert-multi! db/ds :activity (full-activity))
-  (log/info "Done."))
+  (let [existing-activity (->> (sql/query
+                                db/ds
+                                ["select * from activity"]
+                                {:builder-fn rs/as-unqualified-maps})
+                               (pmap :transaction_id)
+                               (set))
+        new-activity (->> (full-activity)
+                          (remove #(existing-activity (:transaction_id %))))]
+    (if (seq new-activity)
+      (do
+        (log/info (count new-activity) "new activity records found")
+        (sql/insert-multi! db/ds :activity new-activity)
+        (log/info "Done."))
+      (log/info "No new activity records found"))))
