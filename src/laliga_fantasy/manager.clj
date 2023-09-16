@@ -4,16 +4,20 @@
    [laliga-fantasy.auth :as auth]
    [laliga-fantasy.env :as env]))
 
-(defn- manager-ids*
+(defn- managers*
   []
   (let [ranking-url (str "https://api-fantasy.llt-services.com/api/v3/leagues/"
                          (:league-id env/config)
-                         "/ranking/4")
-        format-fn   (fn [{:keys [team]}]
-                      (:id team))]
+                         "/ranking/")]
     (->> (client/get ranking-url {:as          :json
                                   :oauth-token (auth/token)})
-         :body
-         (pmap format-fn))))
+         :body)))
 
-(def manager-ids (memoize manager-ids*))
+(def managers (memoize managers*))
+
+
+(defn manager-ids
+  "Iterating over the manager ids is useful in other contexts and API
+  queries"
+  []
+  (map (comp :id :team) (managers)))
