@@ -15,6 +15,7 @@
    (java.lang.management ManagementFactory)))
 
 (hugsql/def-db-fns "laliga_fantasy/sql/main.sql")
+(declare create-my-team-view)
 
 (defn healthcheck
   "Another callable entry point to the application."

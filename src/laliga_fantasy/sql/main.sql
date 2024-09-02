@@ -90,7 +90,7 @@ create table if not exists price_trends (
 -- :result :raw
 create table if not exists activity (
     id serial primary key,
-    transaction_id integer,
+    transaction_id bigint,
     publication_date timestamptz,
     origin text,
     destination text,

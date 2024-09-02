@@ -13,6 +13,7 @@
    [taoensso.timbre :as log]))
 
 (hugsql/def-db-fns "laliga_fantasy/sql/main.sql")
+(declare create-activity-table)
 
 (defn- activity-type
   [msg]
