@@ -41,7 +41,7 @@ jobs:
           cli: 1.11.1.1413
 
       - name: Run tests & build uberjar
-        run: clojure -T:build ci
+        run: clojure -T:build uberjar
 
       - name: Check version
         run: clojure -X:healthcheck

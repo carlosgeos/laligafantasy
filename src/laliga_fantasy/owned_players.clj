@@ -1,54 +1,55 @@
 (ns laliga-fantasy.owned-players
   (:require
-   [clj-http.client :as client]
    [hugsql.core :as hugsql]
    [java-time.api :as jt]
+   [laliga-fantasy.api :as api]
    [laliga-fantasy.auth :as auth]
    [laliga-fantasy.db :as db]
    [laliga-fantasy.env :as env]
    [laliga-fantasy.manager :as manager]
    [laliga-fantasy.util :as u]
    [next.jdbc.sql :as sql]
-   [taoensso.timbre :as log]))
+   [taoensso.telemere :as t]))
 
 (hugsql/def-db-fns "laliga_fantasy/sql/main.sql")
+(declare drop-owned-players-table)
+(declare create-owned-players-table)
+
+(defn- api-endpoint
+  [manager-id]
+  (format "https://api-fantasy.llt-services.com/api/v3/leagues/%s/teams/%s"
+          (:league-id env/config)
+          manager-id))
+
+(defn- format-response
+  "This `manager-id` is the outer level one (account level?), not the
+  league level manager-id"
+  [manager-id {:keys [buyoutClause manager buyoutClauseLockedEndTime playerMaster]}]
+  {:player_id              (u/coerce-to-int (:id playerMaster))
+   :manager                (:managerName manager)
+   :league_manager_id      (:id manager)
+   :manager_id             manager-id
+   :buyout                 (u/coerce-to-int buyoutClause)
+   :buyout_lock_expiration (->> (jt/instant u/default-datetime-formatter buyoutClauseLockedEndTime)
+                                (jt/instant->sql-timestamp))
+   :created_at             (jt/sql-timestamp)})
 
 (defn- owned-players*
   []
-  (let [url       (fn [manager-id]
-                    (str "https://api-fantasy.llt-services.com/api/v3/leagues/"
-                         (:league-id env/config)
-                         "/teams/" manager-id))
-        fmt       (jt/formatter :iso-offset-date-time)
-        format-fn (fn [manager-id {:keys [buyoutClause manager
-                                          buyoutClauseLockedEndTime playerMaster]}]
-                    ;; Here we grab both the top level
-                    ;; `manager-id` (account level?), and not the
-                    ;; league level manager id
-                    {:player_id              (u/coerce-to-int (:id playerMaster))
-                     :manager                (:managerName manager)
-                     :league_manager_id      (:id manager)
-                     :manager_id             manager-id
-                     :buyout                 (u/coerce-to-int buyoutClause)
-                     :buyout_lock_expiration (->> (jt/instant fmt buyoutClauseLockedEndTime)
-                                                  (jt/instant->sql-timestamp))
-                     :created_at             (jt/sql-timestamp)})]
-    (->> (-> (manager/manager-ids)
-             (conj (:manager-id env/config))
-             (set))
-         (map #(->> (client/get (url %) {:as          :json
-                                         :oauth-token (auth/token)})
-                    :body
-                    :players
-                    (pmap (partial format-fn %))))
-         (flatten))))
+  (let [manager-ids (-> (manager/manager-ids)
+                        (conj (:manager-id env/config))
+                        (set))
+        players     (map #(->> (api/get* (api-endpoint %) {:oauth-token (auth/token)})
+                               :players
+                               (map (partial format-response %)))
+                         manager-ids)]
+    (flatten players)))
 
 (def owned-players (memoize owned-players*))
 
 (defn load-owned-players-to-db
   []
-  (log/info "Rebuilding owned_players table...")
+  (t/log! :info "Rebuilding owned_players table...")
   (drop-owned-players-table db/ds)
   (create-owned-players-table db/ds)
-  (sql/insert-multi! db/ds :owned_players (owned-players))
-  (log/info "Done."))
+  (sql/insert-multi! db/ds :owned_players (owned-players)))

@@ -1,4 +1,7 @@
-(ns laliga-fantasy.util)
+(ns laliga-fantasy.util
+  (:require [java-time.api :as jt]))
+
+(def default-datetime-formatter (jt/formatter :iso-offset-date-time))
 
 (defn coerce-to-int
   [n]

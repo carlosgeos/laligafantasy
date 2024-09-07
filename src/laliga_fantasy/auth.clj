@@ -1,6 +1,6 @@
 (ns laliga-fantasy.auth
   (:require
-   [clj-http.client :as client]
+   [laliga-fantasy.api :as api]
    [laliga-fantasy.env :as env]))
 
 (defn code
@@ -11,10 +11,7 @@
          payload  {:policy   "B2C_1A_ResourceOwnerv2"
                    :username username
                    :password password}]
-     (-> (client/post auth-url {:form-params payload
-                                :as          :json})
-         :body
-         :code))))
+     (:code (api/post* auth-url {:form-params payload})))))
 
 (defn- token*
   ([]
@@ -23,10 +20,7 @@
    (let [token-url "https://api-fantasy.llt-services.com/login/v3/email/token"
          payload   {:code   (code username password)
                     :policy "B2C_1A_ResourceOwnerv2"}]
-     (-> (client/post token-url {:form-params payload
-                                 :as          :json})
-         :body
-         :access_token))))
+     (:access_token (api/post* token-url {:form-params payload})))))
 
 ;;; This fn can be memoized because the lifespan of any of this app's
 ;;; processes won't be > 24 hours, which is the token expiration time

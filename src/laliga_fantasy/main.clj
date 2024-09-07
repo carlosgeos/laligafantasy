@@ -10,7 +10,7 @@
    [laliga-fantasy.player :as player]
    [laliga-fantasy.price-history :as price-history]
    [laliga-fantasy.price-trend :as price-trend]
-   [taoensso.timbre :as log])
+   [taoensso.telemere :as t])
   (:import
    (java.lang.management ManagementFactory)))
 
@@ -46,7 +46,7 @@
   "Main entrypoint to the application"
   [& _args]
   (healthcheck)
-  (log/info "START")
+  (t/log! :info "START")
   (player/load-players-to-db)
   (daily-market/load-daily-market-to-db)
   (o.players/load-owned-players-to-db)
@@ -55,6 +55,7 @@
   (activity/load-activity-to-db)
 
   (create-views)
+  (t/log! :info "DONE")
   ;; The following is important to avoid the 1 minute waiting time
   ;; when the program execution is complete:
   ;;

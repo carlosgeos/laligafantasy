@@ -1,17 +1,20 @@
 (ns laliga-fantasy.price-history
   (:require
-   [clj-http.client :as client]
-   [clj-http.conn-mgr :as conn]
    [clojure.core.async :as a]
+   [clojure.data.json :as json]
    [hugsql.core :as hugsql]
    [java-time.api :as jt]
    [laliga-fantasy.db :as db]
    [laliga-fantasy.player :as player]
    [laliga-fantasy.util :as u]
    [next.jdbc.sql :as sql]
+   [org.httpkit.client :as client]
+   [taoensso.telemere :as t]
    [taoensso.timbre :as log]))
 
 (hugsql/def-db-fns "laliga_fantasy/sql/main.sql")
+(declare drop-price-history-table)
+(declare create-price-history-table)
 
 (defn- normalize-price-history-point
   "`player-id` doesn't come in the response, so it has to come from this
@@ -24,46 +27,42 @@
    :created_at   (jt/sql-timestamp)})
 
 (defn- ok-handler
-  [result player-id response]
+  [result player-id {:keys [_opts _status _headers body]}]
   (a/go
-    (let [parsed-response (->> response
-                               :body
-                               (pmap (partial normalize-price-history-point player-id)))]
-      (a/>! result parsed-response)
+    (let [parsed-response     (json/read-str body :key-fn keyword)
+          normalized-response (map (partial normalize-price-history-point player-id) parsed-response)]
+      (a/>! result normalized-response)
       (a/close! result))))
 
 (defn- ex-handler
-  [player-id ex]
+  [player-id {:keys [_opts error]}]
   (log/error "Error fetching price_history for player-id" player-id)
-  (log/error (.getMessage ex))
-  (throw ex))
+  (log/error (.getMessage error))
+  (throw error))
+
+(defn- api-endpoint
+  [player-id]
+  (format "https://api-fantasy.llt-services.com/api/v3/player/%s/market-value"
+          player-id))
 
 (defn- price-history-async*
   "`pipeline-async` handlers must return immediately, shouldn't have any
   blocking operations and must close the internal `result` chan after
   `put`ing.
 
-  `clj-http.client/get` puts the request in flight and returns an
+  `org.httpkit.client/get` puts the request in flight and returns an
   Apache's `BasicFuture`."
-  ([player-id result]
-   (price-history-async* (conn/make-reuseable-async-conn-manager {:threads 30 :default-per-route 30}) player-id result))
-  ([cm player-id result]
-   (a/go
-     (try
-       (let [url (str "https://api-fantasy.llt-services.com/api/v3/player/"
-                      player-id
-                      "/market-value")]
-         (log/info "Requesting price_history for player-id" player-id)
-         (client/get url
-                     {:connection-manager cm
-                      :as                 :json
-                      :async?             true}
-                     (partial ok-handler result player-id)
-                     (partial ex-handler player-id)))
-       (catch Throwable e
-         (log/error e)
-         (a/close! result)
-         (throw e))))))
+  [player-id result]
+  (a/go
+    (try
+      (t/log! :info ["Requesting price_history for player-id" player-id])
+      (client/get (api-endpoint player-id)
+                  (partial ok-handler result player-id)
+                  (partial ex-handler player-id))
+      (catch Throwable e
+        (log/error e)
+        (a/close! result)
+        (throw e)))))
 
 (defn- all-price-history*
   "`pipeline-async` is very different from `pipeline`. The `parallelism`
@@ -74,16 +73,13 @@
   blocks all share 8 JVM threads, and that's why they must be properly
   parked and not blocked"
   []
-  (let [cm         (conn/make-reuseable-async-conn-manager {:threads 30 :default-per-route 30})
-        player-ids (->> (player/players)
-                        (pmap :player_id))
-        from       (a/chan 50)
+  (let [from       (a/chan 50)
         to         (a/chan 50)
-        _          (a/onto-chan! from player-ids)]
+        _          (a/onto-chan! from (player/player-ids))]
     (a/pipeline-async
      5
      to
-     (partial price-history-async* cm)
+     price-history-async*
      from)
     (->> (a/<!! (a/into [] to))
          (flatten))))
@@ -95,11 +91,10 @@
   number of parameters cannot be > 65535 (it compiles to a single
   prepared statement). The batch option does batching automatically"
   []
-  (log/info "Rebuilding price_history...")
+  (t/log! :info "Rebuilding price_history...")
   (drop-price-history-table db/ds)
   (create-price-history-table db/ds)
-  (sql/insert-multi! db/ds :price_history (all-price-history) {:batch true})
-  (log/info "Done."))
+  (sql/insert-multi! db/ds :price_history (all-price-history) {:batch true}))
 
 (comment
 ;;; Pipeline async results viewer

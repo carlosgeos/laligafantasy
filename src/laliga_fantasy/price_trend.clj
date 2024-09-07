@@ -5,9 +5,11 @@
    [laliga-fantasy.db :as db]
    [laliga-fantasy.price-history :as price.h]
    [next.jdbc.sql :as sql]
-   [taoensso.timbre :as log]))
+   [taoensso.telemere :as t]))
 
 (hugsql/def-db-fns "laliga_fantasy/sql/main.sql")
+(declare drop-price-trends-table)
+(declare create-price-trends-table)
 
 (defn- pct-change
   "Return the percentage increase/decrease"
@@ -31,19 +33,18 @@
   []
   (->> (price.h/all-price-history)
        (group-by :player_id)
-       (pmap (fn [[player_id prices]]
-               {:player_id  player_id
-                :change_3d  (change prices 3)
-                :change_7d  (change prices 7)
-                :change_14d (change prices 14)
-                :change_30d (change prices 30)
-                :change_all (change prices)
-                :created_at (jt/sql-timestamp)}))))
+       (map (fn [[player_id prices]]
+              {:player_id  player_id
+               :change_3d  (change prices 3)
+               :change_7d  (change prices 7)
+               :change_14d (change prices 14)
+               :change_30d (change prices 30)
+               :change_all (change prices)
+               :created_at (jt/sql-timestamp)}))))
 
 (defn load-price-trends-to-db
   []
-  (log/info "Rebuilding price_trends...")
+  (t/log! :info "Rebuilding price_trends...")
   (drop-price-trends-table db/ds)
   (create-price-trends-table db/ds)
-  (sql/insert-multi! db/ds :price_trends (price-trends))
-  (log/info "Done."))
+  (sql/insert-multi! db/ds :price_trends (price-trends)))

@@ -1,16 +1,16 @@
 (ns laliga-fantasy.activity
   (:require
-   [clj-http.client :as client]
    [clojure.string :as string]
    [hugsql.core :as hugsql]
    [java-time.api :as jt]
+   [laliga-fantasy.api :as api]
    [laliga-fantasy.auth :as auth]
    [laliga-fantasy.db :as db]
    [laliga-fantasy.env :as env]
    [laliga-fantasy.util :as u]
    [next.jdbc.result-set :as rs]
    [next.jdbc.sql :as sql]
-   [taoensso.timbre :as log]))
+   [taoensso.telemere :as t]))
 
 (hugsql/def-db-fns "laliga_fantasy/sql/main.sql")
 (declare create-activity-table)
@@ -39,25 +39,26 @@
      :tx_type     (activity-type msg)
      :amount      (parse-amount (nth groups 4))}))
 
+(defn- api-endpoint
+  [page]
+  (format "https://api-fantasy.llt-services.com/api/v3/leagues/%s/news/%s"
+          (:league-id env/config)
+          page))
+
+(defn- format-response
+  [{:keys [msg _title id publicationDate]}]
+  (merge
+   {:transaction_id   (u/coerce-to-int id)
+    :publication_date (->> (jt/instant u/default-datetime-formatter publicationDate)
+                           (jt/instant->sql-timestamp))
+    :created_at       (jt/sql-timestamp)}
+   (parse-activity msg)))
+
 (defn- activity-page
   [page]
-  (let [url       (str "https://api-fantasy.llt-services.com/api/v3/leagues/"
-                       (:league-id env/config)
-                       "/news/"
-                       page)
-        fmt       (jt/formatter :iso-offset-date-time)
-        format-fn (fn [{:keys [msg _title id publicationDate]}]
-                    (merge
-                     {:transaction_id   (u/coerce-to-int id)
-                      :publication_date (->> (jt/instant fmt publicationDate)
-                                             (jt/instant->sql-timestamp))
-                      :created_at       (jt/sql-timestamp)}
-                     (parse-activity msg)))]
-    (->> (client/get url {:as          :json
-                          :oauth-token (auth/token)})
-         :body
-         (filter #(= "Operación de mercado" (:title %)))
-         (pmap format-fn))))
+  (->> (api/get* (api-endpoint page) {:oauth-token (auth/token)})
+       (filter #(= "Operación de mercado" (:title %)))
+       (map format-response)))
 
 (defn- full-activity
   "Query activity pages until the result is an empty response"
@@ -71,19 +72,18 @@
 
 (defn load-activity-to-db
   []
-  (log/info "Incrementally updating activity table...")
+  (t/log! :info "Incrementally updating activity table...")
   (create-activity-table db/ds)
   (let [existing-activity (->> (sql/query
                                 db/ds
                                 ["select * from activity"]
                                 {:builder-fn rs/as-unqualified-maps})
-                               (pmap :transaction_id)
+                               (map :transaction_id)
                                (set))
-        new-activity (->> (full-activity)
-                          (remove #(existing-activity (:transaction_id %))))]
+        new-activity      (->> (full-activity)
+                               (remove #(existing-activity (:transaction_id %))))]
     (if (seq new-activity)
       (do
-        (log/info (count new-activity) "new activity records found")
-        (sql/insert-multi! db/ds :activity new-activity)
-        (log/info "Done."))
-      (log/info "No new activity records found"))))
+        (t/log! :info [" --- " (count new-activity) "new activity records found"])
+        (sql/insert-multi! db/ds :activity new-activity))
+      (t/log! :info "No new activity records found"))))

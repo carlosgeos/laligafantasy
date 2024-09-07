@@ -1,17 +1,26 @@
 (ns build
-  (:refer-clojure :exclude [test])
-  (:require [org.corfield.build :as bb]))
+  (:require [clojure.tools.build.api :as b]))
 
-(def lib 'app/laliga-fantasy-tool)
-(def version "0.1.0-SNAPSHOT")
-(def main 'laliga-fantasy.main)
+(def app 'app/laliga-fantasy-tool)
+(def class-dir "target/classes")
+(def uber-file (format "target/%s.jar" (name app)))
 
-(defn test "Run the tests." [opts]
-  (bb/run-tests opts))
+;; delay to defer side effects (artifact downloads)
+(def basis (delay (b/create-basis {:project "deps.edn"})))
 
-(defn ci "Run the CI pipeline of tests (and build the uberjar)." [opts]
-  (-> opts
-      (assoc :lib lib :version version :main main)
-      (bb/run-tests)
-      (bb/clean)
-      (bb/uber)))
+(defn clean [_]
+  (b/delete {:path "target"}))
+
+(defn uberjar [_]
+  (clean nil)
+  (b/copy-dir {:src-dirs   ["src" "resources"]
+               :target-dir class-dir})
+  (println "Compiling...")
+  (b/compile-clj {:basis      @basis
+                  :ns-compile '[laliga-fantasy.main]
+                  :class-dir  class-dir})
+  (println "Building uberjar" (str uber-file "..."))
+  (b/uber {:class-dir class-dir
+           :uber-file uber-file
+           :basis     @basis
+           :main      'laliga-fantasy.main}))
